@@ -28,6 +28,7 @@ import java.util.concurrent.Future;
 
 import org.aopalliance.intercept.MethodInterceptor;
 import org.aopalliance.intercept.MethodInvocation;
+import org.reactivestreams.Publisher;
 
 import org.springframework.aop.framework.ProxyFactory;
 import org.springframework.aop.support.AopUtils;
@@ -63,8 +64,6 @@ import org.springframework.util.ObjectUtils;
 import org.springframework.util.ReflectionUtils;
 import org.springframework.util.StringUtils;
 
-import reactor.Environment;
-import reactor.rx.Promise;
 import reactor.rx.Promises;
 
 /**
@@ -117,8 +116,6 @@ public class GatewayProxyFactoryBean extends AbstractEndpoint
 	private volatile Class<?> asyncSubmitType;
 
 	private volatile Class<?> asyncSubmitListenableType;
-
-	private volatile Object reactorEnvironment;
 
 	private volatile boolean initialized;
 
@@ -250,20 +247,6 @@ public class GatewayProxyFactoryBean extends AbstractEndpoint
 		this.globalMethodMetadata = globalMethodMetadata;
 	}
 
-	/**
-	 * Set the Reactor {@link Environment} to be used for processing methods with a
-	 * {@link Promise} return type. (Required when any such methods are declared on the
-	 * service interface).
-	 * @param reactorEnvironment the Reactor Environment.
-	 * @since 4.1
-	 */
-	public void setReactorEnvironment(Object reactorEnvironment) {
-		if (!Environment.class.getName().equals(reactorEnvironment.getClass().getName())) {
-			throw new IllegalArgumentException("The 'reactorEnvironment' must be instance of 'reactor.Environment'");
-		}
-		this.reactorEnvironment = reactorEnvironment;
-	}
-
 	@Override
 	public void setBeanClassLoader(ClassLoader beanClassLoader) {
 		this.beanClassLoader = beanClassLoader;
@@ -363,12 +346,8 @@ public class GatewayProxyFactoryBean extends AbstractEndpoint
 				}
 			}
 		}
-		if (reactorPresent && Promise.class.isAssignableFrom(returnType)) {
-			if (this.reactorEnvironment == null) {
-				throw new IllegalStateException("'reactorEnvironment' is required in case of 'Promise' return type.");
-			}
-			return Promises.<Object>task((Environment) this.reactorEnvironment,
-					reactor.fn.Functions.supplier(new AsyncInvocationTask(invocation)));
+		if (reactorPresent && Publisher.class.isAssignableFrom(returnType)) {
+			return Promises.<Object>task(() -> new AsyncInvocationTask(invocation));
 		}
 		return this.doInvoke(invocation, true);
 	}
@@ -586,7 +565,7 @@ public class GatewayProxyFactoryBean extends AbstractEndpoint
 		if (Future.class.isAssignableFrom(expectedReturnType)) {
 			return (T) source;
 		}
-		if (reactorPresent && Promise.class.isAssignableFrom(expectedReturnType)) {
+		if (reactorPresent && Publisher.class.isAssignableFrom(expectedReturnType)) {
 			return (T) source;
 		}
 		if (this.getConversionService() != null) {
@@ -600,7 +579,7 @@ public class GatewayProxyFactoryBean extends AbstractEndpoint
 	private static boolean hasReturnParameterizedWithMessage(Method method, boolean runningOnCallerThread) {
 		if (!runningOnCallerThread &&
 				(Future.class.isAssignableFrom(method.getReturnType())
-				|| (reactorPresent && Promise.class.isAssignableFrom(method.getReturnType())))) {
+				|| (reactorPresent && Publisher.class.isAssignableFrom(method.getReturnType())))) {
 			Type returnType = method.getGenericReturnType();
 			if (returnType instanceof ParameterizedType) {
 				Type[] typeArgs = ((ParameterizedType) returnType).getActualTypeArguments();

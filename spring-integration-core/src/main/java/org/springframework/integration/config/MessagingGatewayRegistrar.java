@@ -99,7 +99,6 @@ public class MessagingGatewayRegistrar implements ImportBeanDefinitionRegistrar,
 		String defaultReplyChannel = (String) gatewayAttributes.get("defaultReplyChannel");
 		String errorChannel = (String) gatewayAttributes.get("errorChannel");
 		String asyncExecutor = (String) gatewayAttributes.get("asyncExecutor");
-		String reactorEnvironment = (String) gatewayAttributes.get("reactorEnvironment");
 		String mapper = (String) gatewayAttributes.get("mapper");
 
 		boolean hasMapper = StringUtils.hasText(mapper);
@@ -156,9 +155,6 @@ public class MessagingGatewayRegistrar implements ImportBeanDefinitionRegistrar,
 		}
 		else if (StringUtils.hasText(asyncExecutor)) {
 			gatewayProxyBuilder.addPropertyReference("asyncExecutor", asyncExecutor);
-		}
-		if (StringUtils.hasText(reactorEnvironment)) {
-			gatewayProxyBuilder.addPropertyReference("reactorEnvironment", reactorEnvironment);
 		}
 		if (StringUtils.hasText(mapper)) {
 			gatewayProxyBuilder.addPropertyReference("mapper", mapper);
