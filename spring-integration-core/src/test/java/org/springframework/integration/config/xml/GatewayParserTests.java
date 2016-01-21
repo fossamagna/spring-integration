@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2015 the original author or authors.
+ * Copyright 2002-2016 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -65,7 +65,7 @@ import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-import reactor.rx.Promises;
+import reactor.rx.Promise;
 
 /**
  * @author Mark Fisher
@@ -175,7 +175,7 @@ public class GatewayParserTests {
 		this.startResponder(requestChannel, replyChannel);
 		TestService service = context.getBean("promise", TestService.class);
 		Publisher<Message<?>> result = service.promise("foo");
-		Message<?> reply = Promises.from(result).await(1, TimeUnit.SECONDS);
+		Message<?> reply = Promise.from(result).await(1, TimeUnit.SECONDS);
 		assertEquals("foo", reply.getPayload());
 		assertNotNull(TestUtils.getPropertyValue(context.getBean("&promise"), "asyncExecutor"));
 	}
